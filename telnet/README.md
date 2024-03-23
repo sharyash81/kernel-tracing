@@ -14,21 +14,21 @@ The telnet command utilizes the telnet network protocol to connect to remote mac
 
 ## Experiment explanation
 The experiment involves initiating a Telnet connection to "www.google.com" on port 80 and sending a HTTP request using the "GET / HTTP/1.1" command : \
-![alt text](images/image-20.png)
+![alt text](images/image-20.png)\
 Let's start by grasping the essentials of NAPI before diving deeper.
 
-- write
+- write\
 ![alt text](images/image.png)
 start with the write syscall which writes 26 characters into `STDOUT`. what's that ? 
 This is what telnet shows when I want to connect to google : "Trying 142.250.185.238..." 
 ( which is 26 characters with \n at the end )
 
-- socket : Then we have a socket syscall with :
+- socket : Then we have a socket syscall with :\
 ![alt text](images/image-1.png)
     - family=2 which represents the IPv4 address family
     - type=1 which indicates that the socket type is `SOCK_STREAM`
     - protocol=0 which is internet protocol ( IP ) according to /etc/protocols 
-    - ret=3 shows that the file descriptor this newly created socket 
+    - ret=3 shows that the file descriptor this newly created socket\ 
     ![alt text](images/image-3.png)
 
 - connect : The connect() system call connects the socket referred to by the file descriptor sockfd to the address specified by addr. 
@@ -47,10 +47,10 @@ And "Escape character is '^]'."
 - pselect6 ( select ) : it allows  a  program  to  monitor multiple file descriptors, waiting until one or more of the file descriptors become "ready" for some class of I/O operation (e.g., input possible).  A file descriptor is considered ready if it is  possible  to perform a corresponding I/O operation (e.g., read(2), or a sufficiently small write(2)) without blocking.
 ![alt text](images/image-8.png)
 
-- read 
+- read\
 ![alt text](images/image-9.png)\
 ![alt text](images/image-10.png)\
-As you can see , there is read syscall on `STDIN` file descriptor (fd=0) which returns 15 ( number of bytes which been read : "GET / HTTP/1.1" - The issued HTTP request )
+As you can see , there is read syscall on `STDIN` file descriptor (fd=0) which returns 15 ( number of bytes which been read : "GET / HTTP/1.1" - The issued HTTP request )\
 ![alt text](images/image-12.png)
 
 - sendto :  The system calls send(), sendto(), and sendmsg() are used to transmit a message to another socket. The  send()  call may be used only when the socket is in a connected state (so that the intended recipient is known).  The only difference between send() and write(2) is the presence of flags.  With a zero  flags  argument, send() is equivalent to write(2). 
@@ -58,18 +58,18 @@ As you can see , there is read syscall on `STDIN` file descriptor (fd=0) which r
 so it sends the "GET / HTTP/1.1" on a socket (fd=3)
 
 - recvfrom 
-The  recv(), recvfrom(), and recvmsg() calls are used to receive messages from a socket.  They may be used to receive data on both connectionless and connection-oriented sockets.The  only  difference  between  recv() and read(2) is the presence of flags.  With a zero flags argument, recv() is generally equivalent to read(2)
-![alt text](images/image-13.png)
+The  recv(), recvfrom(), and recvmsg() calls are used to receive messages from a socket.  They may be used to receive data on both connectionless and connection-oriented sockets.The  only  difference  between  recv() and read(2) is the presence of flags.  With a zero flags argument, recv() is generally equivalent to read(2)\
+![alt text](images/image-13.png)\
 and it recieves the HTTP response from a socket (fd=3)
 
-- write 
-![alt text](images/image-14.png)
-whihch write the response to the `STDOUT` (fd=1)             
+- write\
+![alt text](images/image-14.png)\
+which write the response to the `STDOUT` (fd=1)             
 
 #### Driver and Network side : 
 You may see some events occured during wait blocked which related to the network interface . The two most important ones are as follows : 
 - NAPI related events : \
-![alt text](images/image-23.png)
+![alt text](images/image-23.png)\
 the question is that why do these events occur ? what is napi ? and ... , so Let's understand the concept of NAPI.
     #### What is NAPI and How does it improve the the performance of packet processing ? 
     When a network driver is written as we have described above, the processor is interrupted for every packet received by your interface. In many cases, that is the desired mode of operation, and it is not a problem. High-bandwidth interfaces, however, can receive thousands of packets per second. With that sort of interrupt load, the overall performance of the system can suffer.
@@ -109,7 +109,7 @@ Stopping receive interrupts can take a substantial amount of load off the proces
     So according to the above explanation of NAPI and GRO , we could find out what does `napi_gro_receive` do . It combines the functionalities of NAPI and GRO. ( NAPI improves the efficiency of packet processing by allowing network drivers to defer processing until necessary, reducing CPU overhead during periods of low network activity and GRO aggregates multiple incoming packets destined for the same TCP connection into a single larger packet, reducing processing overhead.  ) By combining these functionalities, `napi_gro_receive` optimizes packet processing in the receive path of network device drivers, enhancing overall networking performance in the Linux kernel.
 
 - netif_receive_skb : which is the main receive data processing function. It always succeeds. The buffer may be dropped during processing for congestion control or by the protocol layers.
-This function may only be called from softirq context and interrupts should be enabled .
+This function may only be called from softirq context and interrupts should be enabled .\
 ![alt text](images/image-16.png)
 ![alt text](images/image-18.png)
 
