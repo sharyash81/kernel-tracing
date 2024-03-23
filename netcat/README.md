@@ -28,21 +28,21 @@ To commence the experiment, I initiate the netcat server on port 4000 and the cl
 ![alt text](images/image.png)
 
 #### How is a TCP connection actually established ?
-Before we uncover the details of read, write, and poll syscalls, let's start by understanding how the socket is allocated to this process. This marks the stage where the socket is set up, configured, and readied for connections, thanks to the orchestration of socket(), setsockopt(), bind(), listen(), and accept().
-![alt text](images/image-1.png)
+Before we uncover the details of read, write, and poll syscalls, let's start by understanding how the socket is allocated to this process. This marks the stage where the socket is set up, configured, and readied for connections, thanks to the orchestration of socket(), setsockopt(), bind(), listen(), and accept().\
+![alt text](images/image-1.png)\
 Now, let's explore the specifics of each of these functions.
 ##### socket
-![alt text](images/image-2.png)
+![alt text](images/image-2.png)\
 socket() creates an endpoint for communication and returns a file descriptor that refers to that endpoint. 
 - family ( domain ) : The  domain  argument  specifies a communication domain; this selects the protocol family which will be used for communication. According to `<sys/socket.h>` file, family 2 corresponds to AF_INET, which represents the Internet Protocol version 4 (IPv4) address family.
 - type : The  socket has the indicated type, which specifies the communication semantics . Since it's a TCP connection, the type of socket is set to stream rather than datagram. ( type = SOCK_STREAM )
 - protocol :  The protocol specifies a particular protocol to be used with the socket. According to /etc/protocols , protocol = 6 means TCP 
 
-![alt text](images/image-3.png)
+![alt text](images/image-3.png)\
 The file descriptor returned by a successful call will be the lowest-numbered file descriptor not currently open for the process which in this case it equals to 3. 
 
 ##### setsockopt
-![alt text](images/image-4.png)
+![alt text](images/image-4.png)\
 setsockopt() set options on specific socket 
 - fd : the file descriptor which in this case it equals to the returned value of socket()
 - level : When manipulating socket options, the level at which the option resides and the name of the  option  must  be specified . To manipulate options at the sockets API level, level is specified as `SOL_SOCKET` . `SOL_SOCKET` is the socket layer itself and is used for options that are protocol independent. ( level=1 means `SOL_SOCKET` according to `<sys/socket.h>`)
@@ -50,12 +50,12 @@ setsockopt() set options on specific socket
 teger boolean flag. `SO_REUSEADDR` is most commonly set in network server programs, since a common usage pattern is to make a configuration change, then be required to restart that program to make the change take effect. Without `SO_REUSEADDR`, the `bind()` call in the restarted program's new instance will fail if there were connections open to the previous instance when you killed it. Those connections will hold the TCP port in the `TIME_WAIT` state for 30-120 seconds, so you fall into case 1 above. ( check [What is SO_REUSEADDR](https://stackoverflow.com/questions/3229860/what-is-the-meaning-of-so-reuseaddr-setsockopt-option-linux) for more information ) 
 - optval and optlen : The arguments optval and optlen are used to access option values for  setsockopt(). The optval and optlen parameters are used to pass data used by the particular set command. The optval parameter points to a buffer containing the data needed by the set command. The optlen parameter must be set to the size of the data pointed to by optval.
 
-![alt text](images/image-5.png)
+![alt text](images/image-5.png)\
 On success, zero is returned for the standard options.
 
 ###### Note : 
 ![alt text](images/image-6.png)
-![alt text](images/image-7.png)
+![alt text](images/image-7.png)\
 In the images provided, you can see that `setsockopt()` is called twice. The first call as I mentioned earlier configures the `SO_REUSEADDR` option, and the second one sets the `SO_REUSEPORT` option Since the optname equals to 15. For more information about how `SO_REUSEADDR`,`SO_REUSEPORT` and `BSD socket implementation` works check the following link (The most comprehensive explanation I've come across) :
 [How do SO_REUSEADDR and SO_REUSEPORT differ](https://stackoverflow.com/questions/14388706/how-do-so-reuseaddr-and-so-reuseport-differ)
 
@@ -65,22 +65,22 @@ Let's break down the `SO_REUSEPORT` into a quick overview based on the above lin
 - For UDP sockets, it tries to distribute datagrams evenly, for TCP listening sockets, it tries to distribute incoming connect requests (those accepted by calling accept()) evenly across all the sockets that share the same address and port combination. Thus an application can easily open the same port in multiple child processes and then use SO_REUSEPORT to get a very inexpensive load balancing.
 
 ##### bind
-When  a  socket  is created with socket(2), it exists in a name space (address family) but has no address as signed to it.  bind() assigns the address specified by addr to the socket referred to by the file  descriptor sockfd.   addrlen  specifies the size, in bytes, of the address structure pointed to by addr.  Traditionally, this operation is called “assigning a name to a socket
-![alt text](images/image-8.png)
-On success, zero is returned.
+When  a  socket  is created with socket(2), it exists in a name space (address family) but has no address as signed to it.  bind() assigns the address specified by addr to the socket referred to by the file  descriptor sockfd.   addrlen  specifies the size, in bytes, of the address structure pointed to by addr.  Traditionally, this operation is called “assigning a name to a socket\
+![alt text](images/image-8.png)\
+On success, zero is returned.\
 ![alt text](images/image-10.png)
 
 ##### listen 
-![alt text](images/image-9.png)
+![alt text](images/image-9.png)\
 listen()  marks  the socket referred to by sockfd as a passive socket, that is, as a socket that will be used to accept incoming connection requests using accept(2).
 - The fd(sockfd) argument is a file descriptor that refers to a socket of type `SOCK_STREAM` or `SOCK_SEQPACKET`
 - The backlog argument defines the maximum length to which the queue of  pending  connections  for  sockfd  may grow.   If a connection request arrives when the queue is full, the client may receive an error with an indication of `ECONNREFUSED` or, if the underlying protocol supports retransmission, the request may be ignored so that a later reattempt at connection succeeds.
 
-On success, zero is returned.
+On success, zero is returned.\
 ![alt text](images/image-11.png)
 
 ##### accept ( accept4 )
-![alt text](images/image-12.png)
+![alt text](images/image-12.png)\
 The  accept()  system  call is used with connection-based socket types (`SOCK_STREAM`, `SOCK_SEQPACKET`).  It extracts the first connection request on the queue of pending connections for  the  listening  socket,  sockfd, creates  a  new connected socket, and returns a new file descriptor referring to that socket.  The newly created socket is not in the listening state.
 - The argument sockfd is a socket that has been created with socket(2), bound to a local address with  bind(2), and is listening for connections after a listen(2). ( in this case fd=3 )
 - The  argument addr is a pointer to a sockaddr structure.  This structure is filled in with the address of the peer socket, as known to the communications layer.
@@ -91,20 +91,19 @@ The  accept()  system  call is used with connection-based socket types (`SOCK_ST
 If no pending connections are present on the queue, and the socket is not  marked  as  nonblocking,  accept() blocks  the caller until a connection is present.  If the socket is marked nonblocking and no pending connections are present on the queue, accept() fails with the error `EAGAIN` or `EWOULDBLOCK`.
 In order to be notified of incoming connections on a socket, you can use select(2), poll(2), or epoll(7). A readable  event  will be delivered when a new connection is attempted and you may then call accept() to get a socket for that connection.
 
-Alos its important to know that `SOCK_NONBLOCK` just sets the newly accepted socket to non-blocking. It does not make accept itself non-blocking. For this one would need to set the listen socket non-blocking before calling accept. That's why we have these two states after accept4
-![alt text](images/image-15.png)
+Alos its important to know that `SOCK_NONBLOCK` just sets the newly accepted socket to non-blocking. It does not make accept itself non-blocking. For this one would need to set the listen socket non-blocking before calling accept. That's why we have these two states after accept4\
+![alt text](images/image-15.png)\
 ![alt text](images/image-16.png)
 
 ![alt text](images/image-17.png)
 
 On  success, these system calls return a file descriptor for the accepted socket (a nonnegative integer) . In this case it's fd=4 
-Also notice the peer v4addr and sport ( 127.0.0.1:4444 ) which is our nc client on port 4444
-![alt text](images/image-13.png)
+Also notice the peer v4addr and sport ( 127.0.0.1:4444 ) which is our nc client on port 4444\
+![alt text](images/image-13.png)\
 we can validate this by using `lsof` command to show the open files of nc process 
-- find the pid of nc prcess ( also we can check this in trace compass)
-In control flow of trace compass 
-![alt text](images/image-20.png)
-Or using ps command 
+- find the pid of nc prcess ( also we can check this in trace compass) In control flow of trace compass\
+![alt text](images/image-20.png)\
+Or using ps command \
 ![alt text](images/image-18.png)
 - Then by using lsof command to
 ![alt text](images/image-19.png)
@@ -113,9 +112,9 @@ also we can check the fd (file descriptor ) of specific process in /etc/[pid]/fd
 ![alt text](images/image-21.png)
 
 Note that the time when the connection was established ( syscall_exit_accept4 ) matches the time which is shown in the wireshark 
-- trace compass
+- trace compass\
 ![alt text](images/image-23.png)
-- wireshark
+- wireshark\
 ![alt text](images/image-22.png)
 
 What we saw earlier is all the things behind the scene of establishing a tcp connection from the server side , but the question is that what happened in the client side ( what events and syscall occured in the client side to establish this connection ) ? 
@@ -140,52 +139,52 @@ read() attempts to read up to `count` bytes from file descriptor `fd` into the b
 write() writes up to `count` bytes from the buffer starting at `buf` to the file referred to by the file descriptor `fd`. On success, the number of bytes written is returned.
 
 ##### Client side : 
-- poll : which waits untill I type something ( which in this case I typed "salam" ) 
-![alt text](images/image-28.png)
-timeout_msecs=-1 Which according to the documentation, specifies the number of milliseconds that poll() should block waiting for a file descriptor to become ready and specifying a negative value ( like here which is -1 ) means an infinite timeout and the call will block until either a file descriptor becomes ready or the call is interrupted by a signal handler .
+- poll : which waits untill I type something ( which in this case I typed "salam" )
+![alt text](images/image-28.png)\
+timeout_msecs=-1 Which according to the documentation, specifies the number of milliseconds that poll() should block waiting for a file descriptor to become ready and specifying a negative value ( like here which is -1 ) means an infinite timeout and the call will block until either a file descriptor becomes ready or the call is interrupted by a signal handler .\
 ![alt text](images/image-29.png)
-- read : nc client reads from the `STDIN` file descriptor ( which I typed "salam")
-![alt text](images/image-32.png)
-The count field is 16384 which sets the upper bound for this read syscall ( 16384 bytes = 16 Kibibyte )
-![alt text](images/image-31.png)
+- read : nc client reads from the `STDIN` file descriptor ( which I typed "salam")\
+![alt text](images/image-32.png)\
+The count field is 16384 which sets the upper bound for this read syscall ( 16384 bytes = 16 Kibibyte )\
+![alt text](images/image-31.png)\
 ret is equal to 6 since "salam" with \n at the end is 6 bytes .
 - poll : again waits to perform I/O on the selected fds . 
-- write : writes to fd=3 socket ( the socket that a tcp connection established on that in the client side )
-![alt text](images/image-33.png)
-again the count field sets to 6 since "salam" with \n at the end is 6 bytes .
-![alt text](images/image-34.png)
+- write : writes to fd=3 socket ( the socket that a tcp connection established on that in the client side )\
+![alt text](images/image-33.png)\
+again the count field sets to 6 since "salam" with \n at the end is 6 bytes .\
+![alt text](images/image-34.png)\
 we can see that ret is also equal to 6.
 ##### Server side : 
 - poll : which waits untill an event occured on fds .
-- read : it reads from the fd=4 ( the socket that a tcp connection established on that in the server side )
-![alt text](images/image-35.png)
-It's obvious that the return value must be equal to 6 . 
+- read : it reads from the fd=4 ( the socket that a tcp connection established on that in the server side )\
+![alt text](images/image-35.png)\
+It's obvious that the return value must be equal to 6 . \
 ![alt text](images/image-36.png)
 - poll : again waits to perform I/O on the selected fds . 
-- write : write what was read from the fd=4 socket to `STDOUT`
-![alt text](images/image-37.png)
+- write : write what was read from the fd=4 socket to `STDOUT`\
+![alt text](images/image-37.png)\
 ![alt text](images/image-38.png)
 
 #### How is the TCP connection being closed ? 
 After read() the EOF from the socket ( according to the documentation , the return value of read syscall is 0 when it reads EOF) , the following syscalls occured . 
 ##### shutdown 
-The  shutdown()  call  causes  all or part of a full-duplex connection on the socket associated with sockfd to be shut down.  If how is `SHUT_RD`, further receptions will be disallowed.  If how is  `SHUT_WR`, further transmissions will be disallowed.  If how is `SHUT_RDWR`, further receptions and transmissions will be disallowed.
+The  shutdown()  call  causes  all or part of a full-duplex connection on the socket associated with sockfd to be shut down.  If how is `SHUT_RD`, further receptions will be disallowed.  If how is  `SHUT_WR`, further transmissions will be disallowed.  If how is `SHUT_RDWR`, further receptions and transmissions will be disallowed.\
 ![alt text](images/image-39.png)
 - fd=4 ( the socket that a tcp connection established on that in the server side )
 - how=0 which according to file.c of kernel source code is `SHUT_RD`
 
-![alt text](images/image-40.png)
+![alt text](images/image-40.png)\
 On success, zero is returned.
 
 ##### close
-close()  closes  a file descriptor, so that it no longer refers to any file and may be reused.
-![alt text](images/image-41.png)
-On success, zero is returned.
+close()  closes  a file descriptor, so that it no longer refers to any file and may be reused.\
+![alt text](images/image-41.png)\
+On success, zero is returned.\
 ![alt text](images/image-42.png)
 
 Note that the time when the connection was being closed matches the time which is shown in the wireshark 
-- trace compass
+- trace compass\
 ![alt text](images/image-44.png)
-- wireshark
+- wireshark\
 ![alt text](images/image-43.png)
 
