@@ -443,7 +443,7 @@ its deals with incoming ICMP packets which first check an incoming packet agains
 then it validate the checksum using `skb_checksum_simple_validate` and if it fails it set the `skb_drop_reason reason` to `SKB_DROP_REASON_ICMP_CSUM` and if its ok and the type of icmp packet is `ICMP_EXT_ECHOREPLY` it calls the `ping_rcv()` function:
 
 ###### ping_rcv()
-The function attempts to retrieve the socket associated with the incoming packet. If no socket is found, the function returns the `SKB_DROP_REASON_NO_SOCKET` value, indicating that the packet should be dropped. If a socket is found, The function creates a clone of the incoming packet using the skb_clone function. If the clone is successful, the function calls the `__ping_queue_rcv_skb` function to process the cloned packet. If the `__ping_queue_rcv_skb` function returns an error, the reason variable is set to `SKB_DROP_REASON_NOMEM`, indicating that the packet should be dropped due to a lack of memory.
+The function attempts to retrieve the socket associated with the incoming packet. If no socket is found, the function returns the `SKB_DROP_REASON_NO_SOCKET` value, indicating that the packet should be dropped. If a socket is found, The function creates a clone of the incoming packet using the skb_clone function. If the clone is successful, the function calls the `__ping_queue_rcv_skb` function to process the cloned packet else the reason variable is set to `SKB_DROP_REASON_NOMEM`, indicating that the packet should be dropped due to a lack of memory.
 
 ##### What is the role of interrupts in receiving a packet? Where is the boundary between the interrupt handler and the rest of kernel code when a new packet is received?
 
